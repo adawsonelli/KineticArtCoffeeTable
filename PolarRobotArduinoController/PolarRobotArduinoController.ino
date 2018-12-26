@@ -45,11 +45,11 @@ void setup()
 
     //setup servos
     ArStepper.setMaxSpeed(300.0);
-    ArStepper.setSpeed(1000);
+    ArStepper.setSpeed(100);
     ArStepper.setAcceleration(100.0);
    
     AthetaStepper.setMaxSpeed(300.0);
-    AthetaStepper.setSpeed(1000);
+    AthetaStepper.setSpeed(100);
     AthetaStepper.setAcceleration(100.0);
   
 }
@@ -63,22 +63,26 @@ void loop()
       //wait for fixed number of packets to accumulate
       if(Serial.available() > 1) //2 chars
       {
-        waitForPacket = false;
         //read in packet
         rTarget = Serial.read();
         thetaTarget = Serial.read();
+        Serial.println(rTarget,DEC);
+        Serial.println(thetaTarget,DEC);
         
         // set stepper destinations and velocities
-        ArStepper.moveTo(rTarget);
-        AthetaStepper.moveTo(thetaTarget);
+//        ArStepper.moveTo((int)rTarget);
+//        AthetaStepper.moveTo((int)thetaTarget);
+        
+        //packet successfully transfered
+        waitForPacket = false;
       }
    }
    
     while( ~atDestination)
     {
       //continue to run
-      ArStepper.run();
-      AthetaStepper.run();
+//      ArStepper.run();
+//      AthetaStepper.run();
 
       //check if the servos are at their destinations
       atDestination = (ArStepper.distanceToGo() == 0) && (AthetaStepper.distanceToGo() == 0);
