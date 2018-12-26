@@ -2,11 +2,13 @@
 #include <Adafruit_MotorShield.h>
 #include <AccelStepper.h>
 
+
+//-------------------------- initialization ------------------------------------
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 //setup adafruit stepper motors
-int PPR = 400; //pulses per revolution
+int ppr = 400; //pulses per revolution
 Adafruit_StepperMotor *thetaMotor = AFMS.getStepper(PPR, 1); //(M1 and M2)
 Adafruit_StepperMotor *rMotor = AFMS.getStepper(PPR, 2);     //(M3 and M4)
 
@@ -39,20 +41,29 @@ AthetaStepper.setCurrentPosition(0);   //current location theta axis [steps]
 unsigned int rTarget = 0;              //desired location of r axis in global pulses [steps]
 unsigned int thetaTarget = 0;          //desired location of the theta axis [steps]
 
+//--------------------------- functions ----------------------------------------
+int minAng(int target, int cpos)
+/* return the min angle between 2 positions*/
+{
+  //assume input for target is always on [0,4000]
+  int ppr = 4000; int upper = 2000 ; int lower = -2000
+  int dpos = target - cpos;
+
+  //perform dpos ROC
+  if (dpos > upper){dpos  = dpos - ppr;}
+  else if(dpos <= lower){dpos  = dpos + ppr;}
+
+  //return dpos
+  return dpos
+}
+
 void thetaROC()
-//perform rollover correction on theta axis
+/*perform ROC on the theta axis, so that its always a positive angle*/
 {
-
+  int ppr = 4000 ; cpos = AthetaStepper.CurrentPosition()
+  if (cpos >=  ppr){AthetaStepper.setCurrentPosition(cpos - ppr);}
+  if (cpos <= -ppr){AthetaStepper.setCurrentPosition(cpos + ppr);}
 }
-
-void mainDist()
-//calculate the minimum dist around a circle
-{
-
-}
-
-
-
 
 void setStepperSpeeds()
 /*determine the velocity to command of each stepper. if either velocity value
@@ -60,7 +71,7 @@ void setStepperSpeeds()
 {
   //determine the velocities required for each axis to reach it's destination by next time step
   int rVel = (rTarget - ArStepper.currentPosition())*freq              //[dsteps /dt]
-  int tVel = (thetaTarget - AthetaStepper.currentPosition())*freq      //[dsteps/dt]
+  int tVel = (minAng(thetaTarget,AthetaStepper.currentPosition()))*freq      //[dsteps/dt]
 
   //handle when either motor saturates, maintain speed ratio
   if (abs(rVel) > stepperVmx  || abs(tVel) > stepperVmx)
@@ -87,7 +98,7 @@ void setStepperSpeeds()
 
 }
 
-
+//------------------------------ main ------------------------------------------
 void setup()
 {
     //setup serial
@@ -139,13 +150,16 @@ void loop()
 
     while(~atDestination)
     {
+      //rollover correction
+      thetaROC()
+
       //check if each axis is at destination:
       bool rDest = ArStepper.currentPosition() != rTarget
       bool thetaDest = AthetaStepper.currentPosition() != thetaTarget
 
       //move one step
-     if (rDest){ArStepper.run();}
-     if (thetaDest){AthetaStepper.run();}
+      if (rDest){ArStepper.run();}
+      if (thetaDest){AthetaStepper.run();}
 
       //check if both servos are at their destinations
       atDestination = (rDest  && thetaDest);
